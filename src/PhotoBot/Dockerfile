@@ -7,7 +7,7 @@ COPY ["PhotoBot/PhotoBot.csproj", "PhotoBot/"]
 RUN dotnet restore "PhotoBot/PhotoBot.csproj"
 COPY . .
 WORKDIR "/src/PhotoBot"
-RUN dotnet build "PhotoBot.csproj" -c Release -o /app/build
+RUN dotnet publish "PhotoBot.csproj" -c Release -o /app
 
 FROM build AS publish
 RUN dotnet publish "PhotoBot.csproj" -c Release -o /app/publish
@@ -15,4 +15,5 @@ RUN dotnet publish "PhotoBot.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN ls -la
 ENTRYPOINT ["dotnet", "PhotoBot.dll"]
