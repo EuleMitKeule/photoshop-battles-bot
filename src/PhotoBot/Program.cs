@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace PhotoBot
 {
-    internal static class Program
+    public static class Program
     {
         public static void Main(string[] args)
             => MainAsync(args).GetAwaiter().GetResult();
