@@ -38,4 +38,4 @@ jobs:
         run: |
           docker pull docker.pkg.github.com/eulemitkeule/photoshop-battles-bot/photoshop-battles-bot:latest
           docker stop photoshop-battles-bot || true && docker rm photoshop-battles-bot || true
-          docker run --name photoshop-battles-bot -v /media/photoshop-battles-bot/config.json:/app/config.json -v /media/photoshop-battles-bot/token.txt:/app/token.txt --restart always -d docker.pkg.github.com/eulemitkeule/photoshop-battles-bot/photoshop-battles-bot:latest
+          docker run --name photoshop-battles-bot -v /media/hdd1/photoshop-battles-bot/config.json:/app/config.json -v /media/hdd1/photoshop-battles-bot/token.txt:/app/token.txt --restart always -d docker.pkg.github.com/eulemitkeule/photoshop-battles-bot/photoshop-battles-bot:latest
