@@ -31,6 +31,12 @@ namespace PhotoBot.Commands
 
             photoBot.Config.Proposals = new List<PhotoProposal>();
 
+            foreach (var pair in photoBot.Config.UserIdToPhotoChannelId)
+            {
+                var channel = photoBot.SocketGuild.GetTextChannel(pair.Value);
+                if (channel != null) await channel.DeleteAsync();
+            }
+
             await PhotoConfig.SaveAsync();
         }
 
@@ -67,7 +73,19 @@ namespace PhotoBot.Commands
                 Console.WriteLine(e);
             }
 
+            var users = photoBot.Config.PhotoUserIds;
+            photoBot.Config.UserIdToPhotoChannelId = new Dictionary<ulong, ulong>();
+
+            foreach (var userId in users)
+            {
+                var user = photoBot.SocketGuild.GetUser(userId);
+                var photoChannel = await ChannelCreator.CreateChannelAsync($"photo-{user.Username}", photoBot.Config.PhotoCategoryId);
+                photoBot.Config.UserIdToPhotoChannelId.Add(userId, photoChannel.Id);
+            }
+
             await Archiver.ArchiveChannelAsync(proposalsChannel);
+
+            await PhotoConfig.SaveAsync();
         }
     }
 }

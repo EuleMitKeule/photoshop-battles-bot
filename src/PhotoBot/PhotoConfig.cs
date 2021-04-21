@@ -21,7 +21,7 @@ namespace PhotoBot
         public List<PhotoProposal> Proposals { get; set; }
 
         public ulong CurrentProposalsChannelId { get; set; }
-        public ulong CurrentPhotosChannelId { get; set; }
+        public Dictionary<ulong, ulong> UserIdToPhotoChannelId { get; set; }
 
         public static async Task SaveAsync()
         {
