@@ -3,7 +3,7 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /src
-COPY ["PhotoBot/PhotoBot.csproj", "PhotoBot/"]
+COPY ["src/PhotoBot/PhotoBot.csproj", "PhotoBot/"]
 RUN dotnet restore "PhotoBot/PhotoBot.csproj"
 COPY . .
 WORKDIR "/src/PhotoBot"
