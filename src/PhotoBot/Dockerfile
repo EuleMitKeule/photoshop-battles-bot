@@ -24,7 +24,7 @@ WORKDIR /source
 COPY ./src/PhotoBot/PhotoBot.csproj .
 RUN dotnet restore
 
-COPY ./src/ .
+COPY ./src/PhotoBot .
 RUN dotnet publish -c release -o /app
 
 FROM mcr.microsoft.com/dotnet/runtime:5.0
