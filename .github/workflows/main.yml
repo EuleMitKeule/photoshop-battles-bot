@@ -1,0 +1,41 @@
+name: Deploy on eulenet
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    
+env:
+  IMAGE_NAME: photoshop-battles-bot
+  
+jobs:
+  package:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checking out
+        uses: actions/checkout@v2
+
+      - name: Building image
+        run: docker build . --file ./src/PhotoBot/Dockerfile --tag $IMAGE_NAME
+
+      - name: Logging in to registry
+        run: echo "${{ secrets.PKG_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+      - name: Pushing image
+        run: |
+          IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+          [ "$VERSION" == "master" ] && VERSION=latest
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:$VERSION
+      - name: Deploying
+        run: |
+          docker pull docker.pkg.github.com/EuleMitKeule/photoshop-battles-bot/photoshop-battles-bot:latest
+          docker stop photoshop-battles-bot || true && docker rm photoshop-battles-bot || true
+          docker run --name photoshop-battles-bot -v /media/photoshop-battles-bot/config.json:/app/config.json -v /media/photoshop-battles-bot/token.txt:/app/token.txt --restart always -d docker.pkg.github.com/EuleMitKeule/photoshop-battles-bot/photoshop-battles-bot:latest
