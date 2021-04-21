@@ -6,8 +6,10 @@ namespace PhotoBot
 {
     public static class Archiver
     {
-        public static async void ArchiveChannel(RestGuildChannel channel)
+        public static async void ArchiveChannelAsync(RestGuildChannel channel)
         {
+            if (channel == null) return;
+
             var photoBot = Service.PhotoBot;
 
             await channel.ModifyAsync(prop => prop.CategoryId = photoBot.Config.ArchiveCategoryId);
@@ -22,7 +24,7 @@ namespace PhotoBot
             while (date.Date.AddDays(1).DayOfWeek != CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek)
                 date = date.AddDays(1);
 
-            return (int) Math.Truncate((double) date.Subtract(beginningOfMonth).TotalDays / 7f) + 1;
+            return (int)Math.Truncate(date.Subtract(beginningOfMonth).TotalDays / 7f) + 1;
         }
     }
 }

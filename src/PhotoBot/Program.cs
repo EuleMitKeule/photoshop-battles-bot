@@ -18,7 +18,7 @@ namespace PhotoBot
             var photoBot = new PhotoBot(config);
             await photoBot.Connect(token);
 
-            await PhotoConfig.Save();
+            await PhotoConfig.SaveAsync();
 
             await Task.Delay(-1);
         }

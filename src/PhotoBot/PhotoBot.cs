@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -11,12 +13,13 @@ namespace PhotoBot
     {
         public PhotoConfig Config { get; }
 
-        DiscordSocketClient Client { get; }
-        DiscordRestClient RestClient { get; }
-        CommandService Commands { get; }
-        PhotoBotParser Parser { get; }
+        public DiscordSocketClient SocketClient { get; }
+        public DiscordRestClient RestClient { get; }
+        public CommandService Commands { get; }
+        public PhotoBotParser Parser { get; }
 
-        public RestGuild Guild { get; set; }
+        public SocketGuild SocketGuild { get; private set; }
+        public RestGuild RestGuild { get; private set; }
 
         public PhotoBot(PhotoConfig config)
         {
@@ -24,24 +27,48 @@ namespace PhotoBot
 
             Config = config;
 
-            Client = new DiscordSocketClient();
+            SocketClient = new DiscordSocketClient();
             RestClient = new DiscordRestClient();
             Commands = new CommandService();
-            Parser = new PhotoBotParser(Client, Commands);
+            Parser = new PhotoBotParser(SocketClient, Commands);
 
-            Client.Log += OnLog;
+            SocketClient.Log += OnLog;
+            SocketClient.Connected += OnSocketConnected;
+        }
+
+        public async Task GetPhotoUsersAsync()
+        {
+            await SocketGuild.DownloadUsersAsync();
+
+            var users = SocketGuild.Users;
+            Config.PhotoUserIds = new List<ulong>();
+
+            foreach (var user in users)
+            {
+                var photoRole = SocketGuild.GetRole(Config.PhotoRoleId);
+
+                if (!user.Roles.Contains(photoRole)) continue;
+
+                Config.PhotoUserIds.Add(user.Id);
+            }
+
+            await PhotoConfig.SaveAsync();
         }
 
         public async Task Connect(string token)
         {
-            await Client.LoginAsync(TokenType.Bot, token);
-            await Client.StartAsync();
+            await SocketClient.LoginAsync(TokenType.Bot, token);
+            await SocketClient.StartAsync();
 
             await RestClient.LoginAsync(TokenType.Bot, token);
 
             await Parser.Connect();
+        }
 
-            Guild = await RestClient.GetGuildAsync(Config.GuildId);
+        async Task OnSocketConnected()
+        {
+            SocketGuild = SocketClient.GetGuild(Config.GuildId);
+            RestGuild = await RestClient.GetGuildAsync(Config.GuildId);
         }
 
         static Task OnLog(LogMessage msg)
