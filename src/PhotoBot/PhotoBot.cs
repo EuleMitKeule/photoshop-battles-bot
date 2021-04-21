@@ -35,6 +35,67 @@ namespace PhotoBot
             SocketClient.Log += OnLogAsync;
             SocketClient.Connected += OnSocketConnectedAsync;
             SocketClient.MessageReceived += OnMessageReceivedAsync;
+            SocketClient.ReactionAdded += OnReactionAddedAsync;
+            SocketClient.ReactionRemoved += OnReactionRemovedAsync;
+        }
+
+        async Task OnReactionAddedAsync(Cacheable<IUserMessage, ulong> cacheable, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            if (channel.Id == Config.CurrentProposalsChannelId)
+            {
+                await OnProposalVoteReceivedAsync(cacheable, channel, reaction);
+            }
+        }
+
+        async Task OnReactionRemovedAsync(Cacheable<IUserMessage, ulong> cacheable, ISocketMessageChannel channel,
+            SocketReaction reaction)
+        {
+            if (channel.Id == Config.CurrentProposalsChannelId)
+            {
+                await OnProposalVoteRevokedAsync(cacheable, channel, reaction);
+            }
+        }
+
+        async Task OnProposalVoteReceivedAsync(Cacheable<IUserMessage, ulong> cacheable, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            var message = await cacheable.DownloadAsync();
+
+            if (!message.Author.IsPhotoUser()) return;
+
+            var proposal = Config.Proposals.Find(element => element.UserId == message.Author.Id);
+
+            if (proposal == null) return;
+
+            if (reaction.Emote.IsUpvote()) proposal.Upvotes += 1;
+            if (reaction.Emote.IsDownvote()) proposal.Downvotes += 1;
+
+            if (reaction.Emote.IsCancel())
+            {
+                if (reaction.User.Value.Id == message.Author.Id)
+                {
+                    var socketUser = SocketGuild.GetUser(reaction.User.Value.Id);
+                    await DeleteProposalAsync(socketUser);
+                }
+            }
+
+            await PhotoConfig.SaveAsync();
+        }
+
+        async Task OnProposalVoteRevokedAsync(Cacheable<IUserMessage, ulong> cacheable, ISocketMessageChannel channel,
+            SocketReaction reaction)
+        {
+            var message = await cacheable.DownloadAsync();
+
+            if (!message.Author.IsPhotoUser()) return;
+
+            var proposal = Config.Proposals.Find(element => element.UserId == message.Author.Id);
+
+            if (proposal == null) return;
+
+            if (reaction.Emote.IsUpvote()) proposal.Upvotes -= 1;
+            if (reaction.Emote.IsDownvote()) proposal.Downvotes -= 1;
+
+            await PhotoConfig.SaveAsync();
         }
 
         public async Task GetPhotoUsersAsync()
@@ -46,9 +107,7 @@ namespace PhotoBot
 
             foreach (var user in users)
             {
-                var photoRole = SocketGuild.GetRole(Config.PhotoRoleId);
-
-                if (!user.Roles.Contains(photoRole)) continue;
+                if (!user.IsPhotoUser()) continue;
 
                 Config.PhotoUserIds.Add(user.Id);
             }
@@ -62,8 +121,6 @@ namespace PhotoBot
             {
                 await OnProposalReceivedAsync(message);
             }
-
-            await Task.CompletedTask;
         }
 
         async Task OnProposalReceivedAsync(SocketMessage message)
@@ -86,23 +143,40 @@ namespace PhotoBot
 
             var proposal = new PhotoProposal
             {
+                MessageId = message.Id,
                 UserId = userId,
                 Topic = message.Content,
+                ImageUrl = message.Attachments.ElementAt(0).Url,
             };
-
-            foreach (var attachment in message.Attachments)
-            {
-                proposal.ImageUrl = attachment.Url;
-                break;
-            }
 
             Config.Proposals.Add(proposal);
 
             Console.WriteLine($"Added new proposal from user {proposal.UserId} with topic {proposal.Topic} and image {proposal.ImageUrl}");
 
-            await PhotoConfig.SaveAsync();
+            await message.AddReactionAsync(new Emoji("✅"));
+            await message.AddReactionAsync(new Emoji("❌"));
+            await message.AddReactionAsync(new Emoji("🚫"));
 
-            await Task.CompletedTask;
+            await PhotoConfig.SaveAsync();
+        }
+
+        public async Task DeleteProposalAsync(SocketGuildUser user)
+        {
+            var proposal = Config.Proposals.Find(element => element.UserId == user.Id);
+
+            if (proposal == null) return;
+
+            var proposalsChannel = SocketGuild.GetTextChannel(Config.CurrentProposalsChannelId);
+
+            try
+            {
+                await proposalsChannel.DeleteMessageAsync(proposal.MessageId);
+            }
+            catch (ArgumentException e) { }
+
+            Config.Proposals.RemoveAll(element => element.UserId == user.Id);
+
+            await PhotoConfig.SaveAsync();
         }
 
         public async Task ConnectAsync(string token)

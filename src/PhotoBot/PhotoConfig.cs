@@ -13,13 +13,14 @@ namespace PhotoBot
         public ulong PhotoCategoryId { get; } = 834181773914800149;
         public ulong ArchiveCategoryId { get; } = 834182201842335756;
         public ulong PhotoRoleId { get; } = 834196147777437706;
+        public ulong WinnerChannelId { get; } = 834395717116231690;
 
         public List<ulong> PhotoUserIds { get; set; }
 
         public List<PhotoProposal> Proposals { get; set; }
 
         public ulong CurrentProposalsChannelId { get; set; }
-        public ulong CurrentPhotosChannel { get; set; }
+        public ulong CurrentPhotosChannelId { get; set; }
 
         public static async Task SaveAsync()
         {

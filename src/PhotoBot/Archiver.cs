@@ -1,16 +1,20 @@
 using System;
 using System.Globalization;
+using System.Threading.Tasks;
 using Discord.Rest;
+using Discord.WebSocket;
 
 namespace PhotoBot
 {
     public static class Archiver
     {
-        public static async void ArchiveChannelAsync(RestGuildChannel channel)
+        public static async Task ArchiveChannelAsync(SocketTextChannel channel)
         {
             if (channel == null) return;
 
             var photoBot = Service.PhotoBot;
+
+            if (channel.Category.Id == photoBot.Config.ArchiveCategoryId) return;
 
             await channel.ModifyAsync(prop => prop.CategoryId = photoBot.Config.ArchiveCategoryId);
             await channel.ModifyAsync(prop =>

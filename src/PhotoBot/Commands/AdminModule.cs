@@ -1,47 +1,73 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.Rest;
-using Discord.WebSocket;
 
 namespace PhotoBot.Commands
 {
     public class AdminModule : ModuleBase<SocketCommandContext>
     {
-        [Command("start battle")]
+        [Command("start battle", RunMode = RunMode.Async)]
         public async Task StartBattleAsync()
         {
             var photoBot = Service.PhotoBot;
 
-            await ReplyAsync("Starting new photo proposal phase.");
+            await ReplyAsync("Starting new photoshop battle.");
 
             var proposalsChannel = await ChannelCreator.CreateChannelAsync("proposals", photoBot.Config.PhotoCategoryId);
 
             if (photoBot.Config.CurrentProposalsChannelId != 0)
             {
-                var oldProposalsChannel =
-                    await photoBot.RestGuild.GetChannelAsync(photoBot.Config.CurrentProposalsChannelId);
-                Archiver.ArchiveChannelAsync(oldProposalsChannel);
+                var oldProposalsChannel = photoBot.SocketGuild.GetTextChannel(photoBot.Config.CurrentProposalsChannelId);
+                await Archiver.ArchiveChannelAsync(oldProposalsChannel);
             }
 
             photoBot.Config.CurrentProposalsChannelId = proposalsChannel.Id;
 
             await photoBot.GetPhotoUsersAsync();
 
+            photoBot.Config.Proposals = new List<PhotoProposal>();
+
             await PhotoConfig.SaveAsync();
         }
 
-        [Command("reset proposal")]
+        [Command("reset proposal", RunMode = RunMode.Async)]
         public async Task ResetProposalAsync(IUser user)
         {
             var photoBot = Service.PhotoBot;
+            var socketUser = photoBot.SocketGuild.GetUser(user.Id);
 
-            photoBot.Config.Proposals.RemoveAll(proposal => proposal.UserId == user.Id);
+            await photoBot.DeleteProposalAsync(socketUser);
+        }
 
-            await PhotoConfig.SaveAsync();
+        [Command("stop proposals", RunMode = RunMode.Async)]
+        public async Task StopProposalsAsync()
+        {
+            var photoBot = Service.PhotoBot;
+
+            var winnerProposal = photoBot.Config.Proposals
+                .OrderByDescending(element => element.Score)
+                .First();
+
+            var proposalsChannel = photoBot.SocketGuild.GetTextChannel(photoBot.Config.CurrentProposalsChannelId);
+            var winnersChannel = photoBot.SocketGuild.GetTextChannel(photoBot.Config.WinnerChannelId);
+
+            using var client = new WebClient();
+            await client.DownloadFileTaskAsync(new Uri(winnerProposal.ImageUrl), "winner_proposal.png");
+
+            try
+            {
+                await winnersChannel.SendFileAsync("winner_proposal.png", $"Thema: {winnerProposal.Topic}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            await Archiver.ArchiveChannelAsync(proposalsChannel);
         }
     }
 }
