@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Building image
-        run: docker build . --file Dockerfile --tag $IMAGE_NAME
+        run: docker build . --file ./src/PhotoBot/Dockerfile --tag $IMAGE_NAME
 
       - name: Logging in to registry
         run: echo "${{ secrets.PKG_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
