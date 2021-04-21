@@ -9,12 +9,12 @@ namespace PhotoBot
     [Serializable]
     public class PhotoConfig
     {
-        public ulong CommandChannelId { get; }
-        public ulong GuildId { get; } = 503583360476512276;
-        public ulong PhotoCategoryId { get; } = 834181773914800149;
-        public ulong ArchiveCategoryId { get; } = 834182201842335756;
-        public ulong PhotoRoleId { get; } = 834196147777437706;
-        public ulong WinnerChannelId { get; } = 834395717116231690;
+        public ulong CommandChannelId { get; set; }
+        public ulong GuildId { get; set; }
+        public ulong PhotoCategoryId { get; set; }
+        public ulong ArchiveCategoryId { get; set; }
+        public ulong PhotoRoleId { get; set; }
+        public ulong WinnerChannelId { get; set; }
 
         public List<ulong> PhotoUserIds { get; set; }
 
