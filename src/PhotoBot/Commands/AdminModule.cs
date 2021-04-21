@@ -33,5 +33,15 @@ namespace PhotoBot.Commands
 
             await PhotoConfig.SaveAsync();
         }
+
+        [Command("reset proposal")]
+        public async Task ResetProposalAsync(IUser user)
+        {
+            var photoBot = Service.PhotoBot;
+
+            photoBot.Config.Proposals.RemoveAll(proposal => proposal.UserId == user.Id);
+
+            await PhotoConfig.SaveAsync();
+        }
     }
 }

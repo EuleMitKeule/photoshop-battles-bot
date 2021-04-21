@@ -16,6 +16,8 @@ namespace PhotoBot
 
         public List<ulong> PhotoUserIds { get; set; }
 
+        public List<PhotoProposal> Proposals { get; set; }
+
         public ulong CurrentProposalsChannelId { get; set; }
         public ulong CurrentPhotosChannel { get; set; }
 

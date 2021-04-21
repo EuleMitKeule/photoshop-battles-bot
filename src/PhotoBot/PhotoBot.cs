@@ -32,8 +32,9 @@ namespace PhotoBot
             Commands = new CommandService();
             Parser = new PhotoBotParser(SocketClient, Commands);
 
-            SocketClient.Log += OnLog;
-            SocketClient.Connected += OnSocketConnected;
+            SocketClient.Log += OnLogAsync;
+            SocketClient.Connected += OnSocketConnectedAsync;
+            SocketClient.MessageReceived += OnMessageReceivedAsync;
         }
 
         public async Task GetPhotoUsersAsync()
@@ -55,7 +56,56 @@ namespace PhotoBot
             await PhotoConfig.SaveAsync();
         }
 
-        public async Task Connect(string token)
+        async Task OnMessageReceivedAsync(SocketMessage message)
+        {
+            if (message.Channel.Id == Config.CurrentProposalsChannelId)
+            {
+                await OnProposalReceivedAsync(message);
+            }
+
+            await Task.CompletedTask;
+        }
+
+        async Task OnProposalReceivedAsync(SocketMessage message)
+        {
+            var userId = message.Author.Id;
+
+            if (!Config.PhotoUserIds.Contains(userId))
+            {
+                await message.DeleteAsync();
+                return;
+            }
+
+            Config.Proposals ??= new List<PhotoProposal>();
+
+            if (Config.Proposals.Any(element => element.UserId == userId))
+            {
+                await message.DeleteAsync();
+                return;
+            }
+
+            var proposal = new PhotoProposal
+            {
+                UserId = userId,
+                Topic = message.Content,
+            };
+
+            foreach (var attachment in message.Attachments)
+            {
+                proposal.ImageUrl = attachment.Url;
+                break;
+            }
+
+            Config.Proposals.Add(proposal);
+
+            Console.WriteLine($"Added new proposal from user {proposal.UserId} with topic {proposal.Topic} and image {proposal.ImageUrl}");
+
+            await PhotoConfig.SaveAsync();
+
+            await Task.CompletedTask;
+        }
+
+        public async Task ConnectAsync(string token)
         {
             await SocketClient.LoginAsync(TokenType.Bot, token);
             await SocketClient.StartAsync();
@@ -65,16 +115,16 @@ namespace PhotoBot
             await Parser.Connect();
         }
 
-        async Task OnSocketConnected()
+        async Task OnSocketConnectedAsync()
         {
             SocketGuild = SocketClient.GetGuild(Config.GuildId);
             RestGuild = await RestClient.GetGuildAsync(Config.GuildId);
         }
 
-        static Task OnLog(LogMessage msg)
+        static async Task OnLogAsync(LogMessage msg)
         {
             Console.WriteLine(msg.ToString());
-            return Task.CompletedTask;
+            await Task.CompletedTask;
         }
     }
 }

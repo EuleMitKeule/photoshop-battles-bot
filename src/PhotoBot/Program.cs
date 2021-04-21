@@ -16,7 +16,7 @@ namespace PhotoBot
             var config = await PhotoConfig.Load();
 
             var photoBot = new PhotoBot(config);
-            await photoBot.Connect(token);
+            await photoBot.ConnectAsync(token);
 
             await PhotoConfig.SaveAsync();
 
