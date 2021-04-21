@@ -27,6 +27,8 @@ namespace PhotoBot
         {
             if (messageParam is not SocketUserMessage message) return;
 
+            if (messageParam.Channel.Id != Service.PhotoBot.Config.CommandChannelId) return;
+
             var argPos = 0;
 
             if (!(message.HasCharPrefix('!', ref argPos) ||
