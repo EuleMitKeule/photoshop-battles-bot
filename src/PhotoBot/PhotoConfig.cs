@@ -19,10 +19,14 @@ namespace PhotoBot
 
         public List<ulong> PhotoUserIds { get; set; }
 
-        public List<PhotoProposal> Proposals { get; set; }
+        public List<PhotoMessage> Proposals { get; set; }
+        
+        public List<PhotoMessage> Photos { get; set; }
 
         public ulong CurrentProposalsChannelId { get; set; }
         public Dictionary<ulong, ulong> UserIdToPhotoChannelId { get; set; }
+        
+        public ulong CurrentVotingChannelId { get; set; }
 
         public static async Task SaveAsync()
         {

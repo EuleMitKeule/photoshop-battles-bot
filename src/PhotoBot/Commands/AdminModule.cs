@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -24,18 +25,30 @@ namespace PhotoBot.Commands
                 var oldProposalsChannel = photoBot.SocketGuild.GetTextChannel(photoBot.Config.CurrentProposalsChannelId);
                 await Archiver.ArchiveChannelAsync(oldProposalsChannel);
             }
+            
+            if (photoBot.Config.CurrentVotingChannelId != 0)
+            {
+                var oldVotingChannel = photoBot.SocketGuild.GetTextChannel(photoBot.Config.CurrentVotingChannelId);
+                await Archiver.ArchiveChannelAsync(oldVotingChannel);
+            }
+
+            if (photoBot.Config.UserIdToPhotoChannelId != null)
+            {
+                foreach (var (_, value) in photoBot.Config.UserIdToPhotoChannelId)
+                {
+                    if (value == 0) continue;
+                    var channel = photoBot.SocketGuild.GetTextChannel(value);
+                    if (channel != null) await channel.DeleteAsync();
+                }
+            }
 
             photoBot.Config.CurrentProposalsChannelId = proposalsChannel.Id;
 
             await photoBot.GetPhotoUsersAsync();
 
-            photoBot.Config.Proposals = new List<PhotoProposal>();
-
-            foreach (var pair in photoBot.Config.UserIdToPhotoChannelId)
-            {
-                var channel = photoBot.SocketGuild.GetTextChannel(pair.Value);
-                if (channel != null) await channel.DeleteAsync();
-            }
+            photoBot.Config.Proposals = new List<PhotoMessage>();
+            photoBot.Config.Photos = new List<PhotoMessage>();
+            photoBot.Config.UserIdToPhotoChannelId = new Dictionary<ulong, ulong>();
 
             await PhotoConfig.SaveAsync();
         }
@@ -55,7 +68,8 @@ namespace PhotoBot.Commands
             var photoBot = Service.PhotoBot;
 
             var winnerProposal = photoBot.Config.Proposals
-                .OrderByDescending(element => element.Score)
+                .OrderBy(element => Guid.NewGuid())
+                .ThenByDescending(element => element.Score)
                 .First();
 
             var proposalsChannel = photoBot.SocketGuild.GetTextChannel(photoBot.Config.CurrentProposalsChannelId);
@@ -97,6 +111,53 @@ namespace PhotoBot.Commands
             await Archiver.ArchiveChannelAsync(proposalsChannel);
 
             await PhotoConfig.SaveAsync();
+        }
+        
+        [Command("start voting", RunMode = RunMode.Async)]
+        public async Task StartVotingAsync()
+        {
+            var photoBot = Service.PhotoBot;
+            var photoVotingChannel = await ChannelCreator.CreateChannelAsync("photo-voting", photoBot.Config.PhotoCategoryId);
+            photoBot.Config.CurrentVotingChannelId = photoVotingChannel.Id;
+
+            photoBot.Config.Photos = photoBot.Config.Photos.OrderBy(element => Guid.NewGuid()).ToList();
+            foreach (var photo in photoBot.Config.Photos)
+            {
+                using var webClient = new WebClient();
+                await webClient.DownloadFileTaskAsync(photo.ImageUrl, "photo.png");
+                var photoMessage = await photoVotingChannel.SendFileAsync("photo.png", "");
+                await photoMessage.AddReactionAsync(new Emoji("✅"));
+                await photoMessage.AddReactionAsync(new Emoji("❌"));
+                photo.MessageId = photoMessage.Id;
+            }
+            
+            foreach (var (_, value) in photoBot.Config.UserIdToPhotoChannelId)
+            {
+                if (value == 0) continue;
+                var channel = photoBot.SocketGuild.GetTextChannel(value);
+                if (channel != null) await channel.DeleteAsync();
+            }
+            
+            await PhotoConfig.SaveAsync();
+        }
+        
+        [Command("stop voting", RunMode = RunMode.Async)]
+        public async Task StopVotingAsync()
+        {
+            var photoBot = Service.PhotoBot;
+            var winner = photoBot.Config.Photos
+                .OrderBy(element => Guid.NewGuid())
+                .ThenByDescending(element => element.Score)
+                .First();
+            var winnerChannel = photoBot.SocketGuild.GetTextChannel(photoBot.Config.WinnerChannelId);
+            var winnerUser = photoBot.SocketGuild.GetUser(winner.UserId);
+            
+            using var webClient = new WebClient();
+            await webClient.DownloadFileTaskAsync(winner.ImageUrl, "winner.png");
+            await winnerChannel.SendFileAsync("winner.png", $"The winner is: {winnerUser.Username}");
+
+            var votingChannel = photoBot.SocketGuild.GetTextChannel(photoBot.Config.CurrentVotingChannelId);
+            await Archiver.ArchiveChannelAsync(votingChannel);
         }
     }
 }

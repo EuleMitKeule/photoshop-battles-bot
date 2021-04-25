@@ -3,7 +3,7 @@ using System;
 namespace PhotoBot
 {
     [Serializable]
-    public class PhotoProposal
+    public class PhotoMessage
     {
         public ulong MessageId { get; set; }
         public ulong UserId { get; set; }
