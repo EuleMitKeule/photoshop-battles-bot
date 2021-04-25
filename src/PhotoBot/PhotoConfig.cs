@@ -14,6 +14,7 @@ namespace PhotoBot
         public ulong PhotoCategoryId { get; set; }
         public ulong ArchiveCategoryId { get; set; }
         public ulong PhotoRoleId { get; set; }
+        public ulong EveryoneRoleId { get; set; }
         public ulong WinnerChannelId { get; set; }
 
         public List<ulong> PhotoUserIds { get; set; }

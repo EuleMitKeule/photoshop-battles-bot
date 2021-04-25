@@ -80,6 +80,17 @@ namespace PhotoBot.Commands
             {
                 var user = photoBot.SocketGuild.GetUser(userId);
                 var photoChannel = await ChannelCreator.CreateChannelAsync($"photo-{user.Username}", photoBot.Config.PhotoCategoryId);
+
+                var denyAllPermissions = new Overwrite(photoBot.Config.EveryoneRoleId, PermissionTarget.Role,
+                    OverwritePermissions.DenyAll(photoChannel));
+
+                var allowUserPermissions = new Overwrite(userId, PermissionTarget.User,
+                    OverwritePermissions.AllowAll(photoChannel));
+
+                var permissions = new List<Overwrite> {denyAllPermissions, allowUserPermissions};
+
+                await photoChannel.ModifyAsync(prop => prop.PermissionOverwrites = permissions);
+
                 photoBot.Config.UserIdToPhotoChannelId.Add(userId, photoChannel.Id);
             }
 
